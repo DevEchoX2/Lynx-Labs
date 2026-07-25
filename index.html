@@ -114,10 +114,10 @@
     let scramjet = null;
     let frame = null;
 
-    // Format URL, but preserve starlight:// internal links
+    
     function norm(u) {
         if (u.startsWith("starlight://") || u.startsWith("about:")) return u;
-        // Basic search fallback if not a URL (can be customized)
+        
         if (!u.includes(".") || u.includes(" ")) return "https://duckduckgo.com/?q=" + encodeURIComponent(u);
         return u.startsWith("http") ? u : "https://" + u;
     }
@@ -128,7 +128,7 @@
             const serviceworker = navigator.serviceWorker.controller ?? (await navigator.serviceWorker.ready).active;
 
             const transport = new EpoxyTransport({
-                wisp: "wss://wisp.mercurywork.shop/"
+                wisp: "wss://nocturne.lol/wisp/"
             });
 
             await transport.init();
@@ -148,23 +148,23 @@
         }
     }
 
-    // Trigger navigation when user hits Enter
+    
     urlInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             const url = norm(urlInput.value);
             urlInput.value = url;
             
-            // Handle internal new tab
+            
             if (url === "starlight://newtab") {
                 iframe.src = "newtab.html";
             } else if (frame) {
-                // Route everything else through Scramjet
+                
                 frame.go(url);
             }
         }
     });
 
-    // Hook up Starlight Nav Buttons
+    
     document.getElementById("nav-back").addEventListener("click", () => {
         if (iframe.contentWindow) iframe.contentWindow.history.back();
     });
@@ -177,7 +177,7 @@
         if (iframe.contentWindow) iframe.contentWindow.location.reload();
     });
 
-    // Register SW
+    
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/sw.js").then(initScramjet);
     } else {
