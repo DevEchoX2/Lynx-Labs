@@ -99,6 +99,92 @@
 <iframe id="browser-viewport" src="newtab.html" frameborder="0"></iframe>
 </div>
 
+<script src="/scramjet/scramjet.js"></script>
+<script src="/controller/controller.api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@3.0.1/dist/index.js"></script>
+
+<script>
+    const { Controller } = $scramjetController;
+    const { defaultConfig } = $scramjet;
+    const EpoxyTransport = self.EpoxyTransport.default;
+
+    const iframe = document.getElementById("browser-viewport");
+    const urlInput = document.getElementById("url-input");
+
+    let scramjet = null;
+    let frame = null;
+
+    // Format URL, but preserve starlight:// internal links
+    function norm(u) {
+        if (u.startsWith("starlight://") || u.startsWith("about:")) return u;
+        // Basic search fallback if not a URL (can be customized)
+        if (!u.includes(".") || u.includes(" ")) return "https://duckduckgo.com/?q=" + encodeURIComponent(u);
+        return u.startsWith("http") ? u : "https://" + u;
+    }
+
+    async function initScramjet() {
+        try {
+            await navigator.serviceWorker.ready;
+            const serviceworker = navigator.serviceWorker.controller ?? (await navigator.serviceWorker.ready).active;
+
+            const transport = new EpoxyTransport({
+                wisp: "wss://wisp.mercurywork.shop/"
+            });
+
+            await transport.init();
+
+            scramjet = new Controller({
+                serviceworker,
+                transport,
+                scramjetConfig: defaultConfig
+            });
+
+            await scramjet.wait();
+            frame = scramjet.createFrame(iframe);
+            console.log("Scramjet Engine Ready");
+
+        } catch (e) {
+            console.error("Scramjet Init Error:", e);
+        }
+    }
+
+    // Trigger navigation when user hits Enter
+    urlInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            const url = norm(urlInput.value);
+            urlInput.value = url;
+            
+            // Handle internal new tab
+            if (url === "starlight://newtab") {
+                iframe.src = "newtab.html";
+            } else if (frame) {
+                // Route everything else through Scramjet
+                frame.go(url);
+            }
+        }
+    });
+
+    // Hook up Starlight Nav Buttons
+    document.getElementById("nav-back").addEventListener("click", () => {
+        if (iframe.contentWindow) iframe.contentWindow.history.back();
+    });
+    
+    document.getElementById("nav-forward").addEventListener("click", () => {
+        if (iframe.contentWindow) iframe.contentWindow.history.forward();
+    });
+    
+    document.getElementById("nav-refresh").addEventListener("click", () => {
+        if (iframe.contentWindow) iframe.contentWindow.location.reload();
+    });
+
+    // Register SW
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").then(initScramjet);
+    } else {
+        console.warn("Service workers not supported. Scramjet won't load.");
+    }
+</script>
+
 <script src="js/particle.js"></script>
 <script src="js/bookmarks.js"></script>
 <script src="js/main.js"></script>
