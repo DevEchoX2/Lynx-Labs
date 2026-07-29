@@ -1,4 +1,4 @@
-class WavesBrowserController {
+class LynxBrowserController {
 constructor() {
 this.iframe = document.getElementById('browser-viewport');
 this.urlInput = document.getElementById('url-input');
@@ -28,13 +28,13 @@ initialTabElement.setAttribute('data-tab-id', initialId);
 this.tabs.push({
 id: initialId,
 element: initialTabElement,
-url: 'newtab.html',
+url: 'lynx://newtab',
 title: 'New Tab'
 });
 this.activeTabId = initialId;
 this.bindSingleTabEvents(initialTabElement, initialId);
 } else {
-this.createNewTab('newtab.html', 'New Tab');
+this.createNewTab('lynx://newtab', 'New Tab');
 }
 }
 bindNavigationControls() {
@@ -43,9 +43,7 @@ this.navBack.addEventListener('click', () => {
 if (this.iframe && this.iframe.contentWindow) {
 try {
 this.iframe.contentWindow.history.back();
-} catch (e) {
-console.warn(e);
-}
+} catch (e) {}
 }
 });
 }
@@ -54,17 +52,18 @@ this.navForward.addEventListener('click', () => {
 if (this.iframe && this.iframe.contentWindow) {
 try {
 this.iframe.contentWindow.history.forward();
-} catch (e) {
-console.warn(e);
-}
+} catch (e) {}
 }
 });
 }
 if (this.navRefresh) {
 this.navRefresh.addEventListener('click', () => {
 if (this.iframe) {
-const currentSrc = this.iframe.src;
-this.iframe.src = currentSrc;
+if (window.frame && !this.urlInput.value.startsWith('lynx://')) {
+window.frame.reload();
+} else {
+this.iframe.src = this.iframe.src;
+}
 }
 });
 }
@@ -85,7 +84,7 @@ this.urlInput.select();
 bindTabControls() {
 if (this.addTabBtn) {
 this.addTabBtn.addEventListener('click', () => {
-this.createNewTab('newtab.html', 'New Tab');
+this.createNewTab('lynx://newtab', 'New Tab');
 });
 }
 }
@@ -140,11 +139,23 @@ t.element.classList.remove('active');
 });
 targetTab.element.classList.add('active');
 this.activeTabId = tabId;
-if (this.iframe) {
-this.iframe.src = targetTab.url;
-}
 if (this.urlInput) {
 this.urlInput.value = targetTab.url;
+}
+if (targetTab.url.startsWith('lynx://')) {
+const route = targetTab.url.replace('lynx://', '');
+this.iframe.src = route === 'newtab' ? 'newtab.html' : `pages/${route}.html`;
+if (window.frame) window.frame = null;
+} else {
+if (window.scramjet) {
+if (!window.frame) {
+this.iframe.src = 'about:blank';
+window.frame = window.scramjet.createFrame(this.iframe);
+}
+setTimeout(() => window.frame.go(targetTab.url), 50);
+} else {
+this.iframe.src = targetTab.url;
+}
 }
 }
 closeTab(tabId) {
@@ -156,7 +167,7 @@ const tabToRemove = this.tabs[tabIndex];
 tabToRemove.element.remove();
 this.tabs.splice(tabIndex, 1);
 if (this.tabs.length === 0) {
-this.createNewTab('newtab.html', 'New Tab');
+this.createNewTab('lynx://newtab', 'New Tab');
 } else if (this.activeTabId === tabId) {
 const newActiveIndex = Math.max(0, tabIndex - 1);
 this.switchTab(this.tabs[newActiveIndex].id);
@@ -167,12 +178,25 @@ if (!rawUrl) {
 return;
 }
 let finalUrl = rawUrl.trim();
-if (!finalUrl.includes('.') && !finalUrl.startsWith('waves://') && !finalUrl.startsWith('file://') && !finalUrl.includes('localhost')) {
+if (finalUrl.startsWith('lynx://')) {
+const route = finalUrl.replace('lynx://', '');
+this.iframe.src = route === 'newtab' ? 'newtab.html' : `pages/${route}.html`;
+if (window.frame) window.frame = null;
+this.updateActiveTabData(finalUrl, route === 'newtab' ? 'New Tab' : route);
+return;
+}
+if (!finalUrl.includes('.') && !finalUrl.startsWith('file://') && !finalUrl.includes('localhost')) {
 finalUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(finalUrl);
-} else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://') && !finalUrl.startsWith('waves://')) {
+} else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
 finalUrl = 'https://' + finalUrl;
 }
-if (this.iframe) {
+if (window.scramjet) {
+if (!window.frame) {
+this.iframe.src = 'about:blank';
+window.frame = window.scramjet.createFrame(this.iframe);
+}
+setTimeout(() => window.frame.go(finalUrl), 50);
+} else if (this.iframe) {
 this.iframe.src = finalUrl;
 }
 this.updateActiveTabData(finalUrl, finalUrl);
@@ -198,18 +222,24 @@ return;
 this.iframe.addEventListener('load', () => {
 try {
 const currentUrl = this.iframe.contentWindow.location.href;
-const currentTitle = this.iframe.contentDocument.title || currentUrl;
-if (currentUrl !== 'about:blank') {
-this.updateActiveTabData(currentUrl, currentTitle);
+if (!currentUrl || currentUrl === 'about:blank') return;
+let newUrl = currentUrl;
+let newTitle = this.iframe.contentDocument.title || currentUrl;
+if (currentUrl.includes('newtab.html')) {
+newUrl = 'lynx://newtab';
+newTitle = 'New Tab';
+} else if (currentUrl.includes('pages/')) {
+const page = currentUrl.split('/').pop().replace('.html', '');
+newUrl = `lynx://${page}`;
+newTitle = page;
 }
-} catch (e) {
-console.warn(e);
-}
+this.updateActiveTabData(newUrl, newTitle);
+} catch (e) {}
 });
 }
 }
 window.addEventListener('DOMContentLoaded', () => {
 if (document.querySelector('.browser-ui')) {
-window.wavesBrowserController = new WavesBrowserController();
+window.lynxBrowserController = new LynxBrowserController();
 }
 });
