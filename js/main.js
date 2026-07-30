@@ -22,6 +22,15 @@ class LynxBrowserController {
         this.setupInitialTab();
         this.monitorIframeChanges();
         this.bindGlobalKeys();
+        this.listenForSettingsUpdates();
+    }
+
+    listenForSettingsUpdates() {
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.action === 'lynx_settings_updated') {
+                this.applySettings();
+            }
+        });
     }
 
     applySettings() {
