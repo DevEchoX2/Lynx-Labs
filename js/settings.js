@@ -21,12 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const particles = localStorage.getItem('lynx_particles') !== 'false';
         document.getElementById('toggle-particles').checked = particles;
 
-        const savedBg = localStorage.getItem('lynx_custom_bg');
-        if (savedBg && savedBg.startsWith('data:image')) {
-            document.getElementById('custom-bg').value = 'Local Image Uploaded';
-        } else {
-            document.getElementById('custom-bg').value = savedBg || '';
-        }
+        const currentBg = localStorage.getItem('lynx_home_bg') || 'none';
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        presetBtns.forEach(btn => {
+            if (btn.getAttribute('data-bg') === currentBg) {
+                btn.style.borderColor = 'var(--accent)';
+            } else {
+                btn.style.borderColor = 'transparent';
+            }
+        });
+
+        const currentAccent = localStorage.getItem('lynx_theme_color') || '#06b6d4';
+        document.documentElement.style.setProperty('--accent', currentAccent);
 
         document.getElementById('panic-key').value = localStorage.getItem('lynx_panic_key') || '';
         document.getElementById('tab-mask').value = localStorage.getItem('lynx_tab_mask') || '';
@@ -65,37 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000);
     });
 
-    document.getElementById('toggle-particles').addEventListener('change', (e) => saveSetting('lynx_particles', e.target.checked));
-    
-    document.getElementById('custom-bg').addEventListener('input', (e) => saveSetting('lynx_custom_bg', e.target.value));
-
-    const bgUpload = document.getElementById('custom-bg-upload');
-    const uploadBtn = document.getElementById('upload-bg-btn');
-    const uploadError = document.getElementById('upload-error');
-    const bgInput = document.getElementById('custom-bg');
-
-    uploadBtn.addEventListener('click', () => {
-        bgUpload.click();
+    document.getElementById('toggle-particles').addEventListener('change', (e) => {
+        saveSetting('lynx_particles', e.target.checked);
     });
 
-    bgUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        if (file.size > 2.5 * 1024 * 1024) {
-            uploadError.style.display = 'block';
-            return;
-        }
-        
-        uploadError.style.display = 'none';
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const base64String = event.target.result;
-            bgInput.value = 'Local Image Uploaded';
-            saveSetting('lynx_custom_bg', base64String);
-        };
-        reader.readAsDataURL(file);
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            presetBtns.forEach(b => b.style.borderColor = 'transparent');
+            btn.style.borderColor = 'var(--accent)';
+            const bgValue = btn.getAttribute('data-bg');
+            saveSetting('lynx_home_bg', bgValue);
+        });
     });
 
     document.getElementById('panic-key').addEventListener('input', (e) => saveSetting('lynx_panic_key', e.target.value));
