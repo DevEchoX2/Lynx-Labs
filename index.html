@@ -61,7 +61,7 @@
 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
 </svg>
 </div>
-<input type="text" class="url-input" id="url-input" value="starlight://newtab" autocomplete="off">
+<input type="text" class="url-input" id="url-input" value="lynx://newtab" autocomplete="off">
 <button class="bookmark-star-btn" id="bookmark-star-btn">
 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -107,81 +107,41 @@
     const { Controller } = $scramjetController;
     const { defaultConfig } = $scramjet;
     const EpoxyTransport = self.EpoxyTransport.default;
-
     const iframe = document.getElementById("browser-viewport");
-    const urlInput = document.getElementById("url-input");
 
-    let scramjet = null;
-    let frame = null;
-
-    
-    function norm(u) {
-        if (u.startsWith("starlight://") || u.startsWith("about:")) return u;
-        
-        if (!u.includes(".") || u.includes(" ")) return "https://duckduckgo.com/?q=" + encodeURIComponent(u);
-        return u.startsWith("http") ? u : "https://" + u;
-    }
+    window.scramjet = null;
+    window.frame = null;
 
     async function initScramjet() {
         try {
             await navigator.serviceWorker.ready;
             const serviceworker = navigator.serviceWorker.controller ?? (await navigator.serviceWorker.ready).active;
 
+            const savedWisp = localStorage.getItem('lynx_wisp_url');
+            const wispUrl = savedWisp ? savedWisp : "wss://nocturne.lol/wisp/";
+
             const transport = new EpoxyTransport({
-                wisp: "wss://nocturne.lol/wisp/"
+                wisp: wispUrl
             });
 
             await transport.init();
 
-            scramjet = new Controller({
+            window.scramjet = new Controller({
                 serviceworker,
                 transport,
                 scramjetConfig: defaultConfig
             });
 
-            await scramjet.wait();
-            frame = scramjet.createFrame(iframe);
-            console.log("Scramjet Engine Ready");
+            await window.scramjet.wait();
+            window.frame = window.scramjet.createFrame(iframe);
 
         } catch (e) {
-            console.error("Scramjet Init Error:", e);
+            console.error(e);
         }
     }
 
-    
-    urlInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            const url = norm(urlInput.value);
-            urlInput.value = url;
-            
-            
-            if (url === "starlight://newtab") {
-                iframe.src = "newtab.html";
-            } else if (frame) {
-                
-                frame.go(url);
-            }
-        }
-    });
-
-    
-    document.getElementById("nav-back").addEventListener("click", () => {
-        if (iframe.contentWindow) iframe.contentWindow.history.back();
-    });
-    
-    document.getElementById("nav-forward").addEventListener("click", () => {
-        if (iframe.contentWindow) iframe.contentWindow.history.forward();
-    });
-    
-    document.getElementById("nav-refresh").addEventListener("click", () => {
-        if (iframe.contentWindow) iframe.contentWindow.location.reload();
-    });
-
-    
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/sw.js").then(initScramjet);
-    } else {
-        console.warn("Service workers not supported. Scramjet won't load.");
     }
 </script>
 
