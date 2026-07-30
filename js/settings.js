@@ -13,6 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    const notifyMain = () => {
+        if (window.parent && window.parent.lynxBrowserController) {
+            window.parent.lynxBrowserController.applySettings();
+        }
+    };
+
     const loadSettings = () => {
         const particles = localStorage.getItem('lynx_particles') !== 'false';
         document.getElementById('toggle-particles').checked = particles;
@@ -35,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const saveSetting = (key, value) => {
         localStorage.setItem(key, value);
+        notifyMain();
     };
 
     const updateSegmentedControl = (containerId, value) => {
@@ -97,18 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = e.target.getAttribute('data-val');
             updateSegmentedControl('esc-lock-toggle', val);
             saveSetting('lynx_lock_escape', val);
-            
-            if (val === 'true' && navigator.keyboard && navigator.keyboard.lock) {
-                navigator.keyboard.lock(['Escape']).catch(() => {});
-            } else if (navigator.keyboard && navigator.keyboard.unlock) {
-                navigator.keyboard.unlock();
-            }
         });
     });
 
     document.getElementById('clear-data-btn').addEventListener('click', () => {
         if(confirm("Are you sure? This will wipe all saved settings.")) {
             localStorage.clear();
+            notifyMain();
             location.reload();
         }
     });
@@ -120,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
             swatch.classList.add('active');
             const color = swatch.getAttribute('data-color');
             saveSetting('lynx_theme_color', color);
-            document.documentElement.style.setProperty('--accent', color);
         });
     });
 });
