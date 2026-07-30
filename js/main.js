@@ -36,6 +36,8 @@ class LynxBrowserController {
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center';
             document.body.style.backgroundRepeat = 'no-repeat';
+        } else {
+            document.body.style.backgroundImage = 'none';
         }
 
         const tabMask = localStorage.getItem('lynx_tab_mask');
@@ -49,12 +51,19 @@ class LynxBrowserController {
             }
             link.href = 'https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png'; 
         }
+
+        const lockEsc = localStorage.getItem('lynx_lock_escape') === 'true';
+        if (lockEsc && navigator.keyboard && navigator.keyboard.lock) {
+            navigator.keyboard.lock(['Escape']).catch(() => {});
+        } else if (navigator.keyboard && navigator.keyboard.unlock) {
+            navigator.keyboard.unlock();
+        }
     }
 
     bindGlobalKeys() {
         window.addEventListener('keydown', (e) => {
             const panicKey = localStorage.getItem('lynx_panic_key');
-            if (panicKey && e.key === panicKey) {
+            if (panicKey && e.key.toLowerCase() === panicKey.toLowerCase()) {
                 window.location.replace('https://classroom.google.com'); 
             }
         });
