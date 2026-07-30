@@ -7,8 +7,6 @@ class LynxBrowserController {
         this.navBack = document.getElementById('nav-back');
         this.navForward = document.getElementById('nav-forward');
         this.navRefresh = document.getElementById('nav-refresh');
-        this.history = [];
-        this.historyIndex = -1;
         this.tabs = [];
         this.activeTabId = null;
         this.init();
@@ -34,20 +32,8 @@ class LynxBrowserController {
     }
 
     applySettings() {
-        const themeColor = localStorage.getItem('lynx_theme_color');
-        if (themeColor) {
-            document.documentElement.style.setProperty('--accent', themeColor);
-        }
-
-        const customBg = localStorage.getItem('lynx_custom_bg');
-        if (customBg) {
-            document.body.style.backgroundImage = `url('${customBg}')`;
-            document.body.style.backgroundSize = 'cover';
-            document.body.style.backgroundPosition = 'center';
-            document.body.style.backgroundRepeat = 'no-repeat';
-        } else {
-            document.body.style.backgroundImage = 'none';
-        }
+        const themeColor = localStorage.getItem('lynx_theme_color') || '#06b6d4';
+        document.documentElement.style.setProperty('--accent', themeColor);
 
         const tabMask = localStorage.getItem('lynx_tab_mask');
         if (tabMask) {
@@ -66,6 +52,15 @@ class LynxBrowserController {
             navigator.keyboard.lock(['Escape']).catch(() => {});
         } else if (navigator.keyboard && navigator.keyboard.unlock) {
             navigator.keyboard.unlock();
+        }
+
+        if (this.iframe && this.iframe.contentWindow) {
+            try {
+                this.iframe.contentWindow.postMessage({
+                    action: 'lynx_theme_sync',
+                    color: themeColor
+                }, '*');
+            } catch (e) {}
         }
     }
 
@@ -299,6 +294,7 @@ class LynxBrowserController {
         }
         this.iframe.addEventListener('load', () => {
             try {
+                this.applySettings();
                 const currentUrl = this.iframe.contentWindow.location.href;
                 if (!currentUrl || currentUrl === 'about:blank') return;
                 let newUrl = currentUrl;
