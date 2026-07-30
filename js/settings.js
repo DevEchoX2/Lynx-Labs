@@ -14,9 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const notifyMain = () => {
-        if (window.parent && window.parent.lynxBrowserController) {
-            window.parent.lynxBrowserController.applySettings();
-        }
+        window.parent.postMessage({ action: 'lynx_settings_updated' }, '*');
     };
 
     const loadSettings = () => {
@@ -58,11 +56,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadSettings();
 
+    document.getElementById('force-save-btn').addEventListener('click', (e) => {
+        notifyMain();
+        const btn = e.target;
+        btn.textContent = "Saved Successfully!";
+        setTimeout(() => {
+            btn.textContent = "Force Save Settings";
+        }, 2000);
+    });
+
     document.getElementById('toggle-particles').addEventListener('change', (e) => saveSetting('lynx_particles', e.target.checked));
     
-    document.getElementById('custom-bg').addEventListener('input', (e) => {
-        saveSetting('lynx_custom_bg', e.target.value);
-    });
+    document.getElementById('custom-bg').addEventListener('input', (e) => saveSetting('lynx_custom_bg', e.target.value));
 
     const bgUpload = document.getElementById('custom-bg-upload');
     const uploadBtn = document.getElementById('upload-bg-btn');
@@ -121,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             swatches.forEach(s => s.classList.remove('active'));
             swatch.classList.add('active');
             const color = swatch.getAttribute('data-color');
+            document.documentElement.style.setProperty('--accent', color);
             saveSetting('lynx_theme_color', color);
         });
     });
